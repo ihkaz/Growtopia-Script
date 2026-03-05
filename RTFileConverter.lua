@@ -233,9 +233,9 @@ function RTTEX.encode(png_bytes)
 
     put_i32le (rttex, 17, 5121)                 
 
-    put_i32le (rttex, 21, height)               
+    put_i32le (rttex, 21, width)               
 
-    put_i32le (rttex, 25, width)                
+    put_i32le (rttex, 25, height)                
 
     put_u8    (rttex, 29, 1)                    
 
@@ -245,9 +245,9 @@ function RTTEX.encode(png_bytes)
 
     put_i32le (rttex, 33, 1)                    
 
-    put_i32le (rttex, 101, height)              
+    put_i32le (rttex, 101, width)              
 
-    put_i32le (rttex, 105, width)               
+    put_i32le (rttex, 105, height)               
 
     put_i32le (rttex, 109, #raw_rgba)           
 
