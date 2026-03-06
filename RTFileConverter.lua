@@ -217,56 +217,54 @@ function RTTEX.encode(png_bytes)
     local img      = png.decode(png_bytes)
     local width    = img.width
     local height   = img.height
-    local raw_rgba = flip_vertical(img.data, width, height)
+    local pw       = get_pow2(width)
+    local ph       = get_pow2(height)
+    local padded = {}
+    local empty_row = string.rep("\0", pw * 4)
+    for y = 0, height - 1 do
+        local row = img.data:sub(y * width * 4 + 1, (y + 1) * width * 4)
+        if pw > width then
+            row = row .. string.rep("\0", (pw - width) * 4)
+        end
+        padded[#padded + 1] = row
+    end
+    for y = height, ph - 1 do
+        padded[#padded + 1] = empty_row
+    end
+
+    local raw_rgba = flip_vertical(table.concat(padded), pw, ph)
 
     local rttex = {}
     for i = 1, 124 do rttex[i] = 0 end
 
-    put_str   (rttex,  1, "RTTXTR")
-    put_u8    (rttex,  7, 0)                    
-
-    put_u8    (rttex,  8, 0)                    
-
-    put_i32le (rttex,  9, get_pow2(height))     
-
-    put_i32le (rttex, 13, get_pow2(width))      
-
-    put_i32le (rttex, 17, 5121)                 
-
-    put_i32le (rttex, 21, width)               
-
-    put_i32le (rttex, 25, height)                
-
-    put_u8    (rttex, 29, 1)                    
-
-    put_u8    (rttex, 30, 0)                    
-
-    put_u16le (rttex, 31, 1)                    
-
-    put_i32le (rttex, 33, 1)                    
-
-    put_i32le (rttex, 101, width)              
-
-    put_i32le (rttex, 105, height)               
-
-    put_i32le (rttex, 109, #raw_rgba)           
+    put_str   (rttex,   1, "RTTXTR")
+    put_u8    (rttex,   7, 0)
+    put_u8    (rttex,   8, 0)
+    put_i32le (rttex,   9, ph)          
+    put_i32le (rttex,  13, pw)          
+    put_i32le (rttex,  17, 5121)
+    put_i32le (rttex,  21, height)      
+    put_i32le (rttex,  25, width)   
+    put_u8    (rttex,  29, 1)
+    put_u8    (rttex,  30, 0)
+    put_u16le (rttex,  31, 1)
+    put_i32le (rttex,  33, 1)
+    put_i32le (rttex, 101, ph)          -- mipmap_w = ph
+    put_i32le (rttex, 105, pw)          -- mipmap_h = pw
+    put_i32le (rttex, 109, #raw_rgba)   -- bufferLength = pw*ph*4
 
     local payload    = table_to_str(rttex, 124) .. raw_rgba
-    local compressed = zlib.deflate(payload)    
+    local compressed = zlib.deflate(payload)
 
     local rtpack = {}
     for i = 1, 32 do rtpack[i] = 0 end
 
     put_str   (rtpack,  1, "RTPACK")
-    put_u8    (rtpack,  7, 1)                   
-
-    put_u8    (rtpack,  8, 1)                   
-
-    put_u32le (rtpack,  9, #compressed)         
-
-    put_u32le (rtpack, 13, #payload)            
-
-    put_u8    (rtpack, 17, 1)                   
+    put_u8    (rtpack,  7, 1)
+    put_u8    (rtpack,  8, 1)
+    put_u32le (rtpack,  9, #compressed)
+    put_u32le (rtpack, 13, #payload)
+    put_u8    (rtpack, 17, 1)
 
     return table_to_str(rtpack, 32) .. compressed
 end
